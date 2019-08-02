@@ -32,6 +32,7 @@ import android.os.Looper;
 import android.os.RemoteException;
 import android.os.Trace;
 import android.os.UserHandle;
+import android.os.Vibrator;
 import android.provider.Settings;
 import android.telecom.CallAudioState;
 import android.telecom.ConnectionService;
@@ -49,7 +50,6 @@ import com.android.internal.annotations.VisibleForTesting;
 // TODO: Needed for move to system service: import com.android.internal.R;
 import com.android.internal.telecom.IInCallService;
 import com.android.internal.util.IndentingPrintWriter;
-import com.android.internal.util.havoc.HavocUtils;
 import com.android.server.telecom.SystemStateProvider.SystemStateListener;
 
 import java.util.ArrayList;
@@ -65,12 +65,6 @@ import java.util.Objects;
  * a binding to the {@link IInCallService} (implemented by the in-call app).
  */
 public class InCallController extends CallsManagerListenerBase {
-
-    private static final long[] INCALL_VIBRATION_PATTERN = {
-            100,
-            200,
-            0,
-    };
 
     public class InCallServiceConnection {
         /**
@@ -916,13 +910,13 @@ public class InCallController extends CallsManagerListenerBase {
         boolean vibrateOnConnect = Settings.System.getIntForUser(mContext.getContentResolver(),
             Settings.System.VIBRATE_ON_CONNECT, 0, UserHandle.USER_CURRENT) == 1;
         boolean vibrateOnDisconnect = Settings.System.getIntForUser(mContext.getContentResolver(),
-            Settings.System.VIBRATE_ON_DISCONNECT, 0, UserHandle.USER_CURRENT) == 1;
+            Settings.System.VIBRATE_ON_DISCONNECT, 0, UserHandle.USER_CURRENT) == 1; 
 
         if (oldState == CallState.DIALING && newState == CallState.ACTIVE && vibrateOnConnect) {
-            HavocUtils.vibratePattern(mContext, INCALL_VIBRATION_PATTERN);
+            vibrate(100, 200, 0);
         } else if (oldState == CallState.ACTIVE && newState == CallState.DISCONNECTED
                 && vibrateOnDisconnect) {
-            HavocUtils.vibratePattern(mContext, INCALL_VIBRATION_PATTERN);
+            vibrate(50, 100, 50);
         }
         updateCall(call);
     }
@@ -1523,5 +1517,12 @@ public class InCallController extends CallsManagerListenerBase {
         }
         childCalls.addAll(parentCalls);
         return childCalls;
+    }
+
+    public void vibrate(int v1, int p1, int v2) {
+        long[] pattern = new long[] {
+            0, v1, p1, v2
+        };
+        ((Vibrator) mContext.getSystemService(Context.VIBRATOR_SERVICE)).vibrate(pattern, -1);
     }
 }
